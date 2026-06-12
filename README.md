@@ -29,3 +29,7 @@ MCP config:
   }
 }
 ```
+
+## TODO
+
+- [ ] Async task mode: Add a non-blocking mode for `implement_task`, return a task ID immediately.

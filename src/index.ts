@@ -2,6 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { ProgressToken } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod";
 import { type AgentConfig, runAgentLoop } from "./agent.js";
 
@@ -49,7 +50,7 @@ server.registerTool(
         ),
     },
   },
-  async ({ task_desc, working_dir }) => {
+  async ({ task_desc, working_dir }, extra) => {
     const resolvedDir = projectDir
       ? path.resolve(projectDir, working_dir ?? ".")
       : working_dir;
@@ -58,8 +59,20 @@ server.registerTool(
       ? `Project root / working directory: ${resolvedDir}\n\n${task_desc}`
       : task_desc;
 
+    const progressToken: ProgressToken | undefined = extra._meta?.progressToken;
+
+    const onProgress =
+      progressToken !== undefined
+        ? async (progress: number, total: number, message: string) => {
+            await extra.sendNotification({
+              method: "notifications/progress",
+              params: { progressToken, progress, total, message },
+            });
+          }
+        : undefined;
+
     try {
-      const result = await runAgentLoop(agentConfig, fullTask);
+      const result = await runAgentLoop(agentConfig, fullTask, onProgress);
       return { content: [{ type: "text", text: result }] };
     } catch (err) {
       return {

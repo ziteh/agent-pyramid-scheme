@@ -8,6 +8,12 @@ export type AgentConfig = {
   model: string;
 };
 
+export type ProgressCallback = (
+  progress: number,
+  total: number,
+  message: string,
+) => Promise<void>;
+
 const SYSTEM_PROMPT = `You are an expert software engineer acting as an autonomous coding agent.
 You will receive a specific implementation task. Use the available tools to complete it:
 - read_file: inspect existing files for context
@@ -21,6 +27,7 @@ Always call task_complete with a clear summary when you are done.`;
 export async function runAgentLoop(
   config: AgentConfig,
   taskDesc: string,
+  onProgress?: ProgressCallback,
 ): Promise<string> {
   const messages: Message[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -75,9 +82,9 @@ export async function runAgentLoop(
         args = {};
       }
 
-      console.error(
-        `[agent] ${tc.function.name}(${JSON.stringify(args).slice(0, 120)})`,
-      );
+      const label = `[${i + 1}/${MAX_ITERATIONS}] ${tc.function.name}(${JSON.stringify(args).slice(0, 80)})`;
+      console.error(`[agent] ${label}`);
+      await onProgress?.(i + 1, MAX_ITERATIONS, label);
       const result = await runTool(tc.function.name, args);
 
       messages.push({ role: "tool", tool_call_id: tc.id, content: result });
