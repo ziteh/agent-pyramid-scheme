@@ -1,0 +1,14 @@
+# Node.js
+node_modules/
+dist/
+build/
+
+# Other
+logs/
+*.log
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
