@@ -1,6 +1,6 @@
 # Agent Pyramid Scheme
 
-Let agents drive agents, assign simple yet tedious one-off tasks to sub-agents.
+Agents delegating to agents — hand off well-scoped implementation work to a local LLM, keeping your main agent's context clean and your token costs down.
 
 ## Usage
 
