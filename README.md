@@ -42,7 +42,3 @@ AGENT_PYRAMID_SCHEME_LLM_API_KEY="$OPENROUTER_API_KEY" pnpm inspector node build
   --model "nvidia/nemotron-3-super-120b-a12b:free" \
   --project-dir "/path/to/project/"
 ```
-
-## TODO
-
-- [ ] Async task mode: Add a non-blocking mode for `implement_task`, return a task ID immediately.

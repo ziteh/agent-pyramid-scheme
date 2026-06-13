@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,6 +8,13 @@ import * as z from "zod";
 import { type AgentConfig, runAgentLoop } from "./agent.js";
 
 type ServerArgs = AgentConfig & { projectDir?: string };
+
+type TaskStatus =
+  | { status: "running" }
+  | { status: "done"; result: string }
+  | { status: "error"; error: string };
+
+const taskRegistry = new Map<string, TaskStatus>();
 
 function parseArgs(argv: string[]): ServerArgs {
   const args = argv.slice(2);
@@ -38,7 +46,8 @@ server.registerTool(
       "Delegate any self-contained task to the sub-agent. " +
       "The agent can read/write files and execute bash commands. " +
       "Suitable for implementation, investigation, research, code review, or any other well-scoped work. " +
-      "Provide a clear, detailed task description including relevant file paths and acceptance criteria.",
+      "Provide a clear, detailed task description including relevant file paths and acceptance criteria. " +
+      "Set async=true to return a task_id immediately and poll with get_task_result; omit for synchronous execution.",
     inputSchema: {
       task_desc: z
         .string()
@@ -51,9 +60,15 @@ server.registerTool(
         .describe(
           "Working directory for the task; resolved relative to --project-dir when set",
         ),
+      async: z
+        .boolean()
+        .optional()
+        .describe(
+          "If true, return a task_id immediately without waiting for completion. Use get_task_result to poll for the result.",
+        ),
     },
   },
-  async ({ task_desc, working_dir }, extra) => {
+  async ({ task_desc, working_dir, async: isAsync }, extra) => {
     const resolvedDir = projectDir
       ? path.resolve(projectDir, working_dir ?? ".")
       : working_dir;
@@ -62,16 +77,33 @@ server.registerTool(
       ? `Project root / working directory: ${resolvedDir}\n\n${task_desc}`
       : task_desc;
 
-    const progressToken: ProgressToken | undefined = extra._meta?.progressToken;
+    if (isAsync) {
+      const taskId = randomUUID();
+      taskRegistry.set(taskId, { status: "running" });
 
+      runAgentLoop(agentConfig, fullTask, undefined, resolvedDir)
+        .then((result) => {
+          taskRegistry.set(taskId, { status: "done", result });
+        })
+        .catch((err: unknown) => {
+          taskRegistry.set(taskId, {
+            status: "error",
+            error: (err as Error).message,
+          });
+        });
+
+      return { content: [{ type: "text", text: taskId }] };
+    }
+
+    const progressToken: ProgressToken | undefined = extra._meta?.progressToken;
     const onProgress =
       progressToken !== undefined
         ? async (progress: number, total: number, message: string) => {
-            await extra.sendNotification({
-              method: "notifications/progress",
-              params: { progressToken, progress, total, message },
-            });
-          }
+          await extra.sendNotification({
+            method: "notifications/progress",
+            params: { progressToken, progress, total, message },
+          });
+        }
         : undefined;
 
     try {
@@ -93,13 +125,57 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  "get_task_result",
+  {
+    description:
+      "Check the status of an async task started by delegate_task with async=true. " +
+      "Returns the status ('running', 'done', or 'error') and the result when done.",
+    inputSchema: {
+      task_id: z.string().describe("The task ID returned by delegate_task"),
+    },
+  },
+  async ({ task_id }) => {
+    const task = taskRegistry.get(task_id);
+    if (!task) {
+      // Return task id list for hint?
+      return {
+        content: [{ type: "text", text: `Unknown task ID: ${task_id}` }],
+        isError: true,
+      };
+    }
+
+    if (task.status === "running") {
+      return { content: [{ type: "text", text: '{"status":"running"}' }] };
+    }
+    if (task.status === "done") {
+      taskRegistry.delete(task_id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ status: "done", result: task.result }),
+          },
+        ],
+      };
+    }
+    taskRegistry.delete(task_id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ status: "error", error: task.error }),
+        },
+      ],
+      isError: true,
+    };
+  },
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  const dirInfo = projectDir ? ` project: ${projectDir}` : "";
-  console.error(
-    `MCP server running — model: ${agentConfig.model} @ ${agentConfig.baseUrl}${dirInfo}`,
-  );
+  console.error("MCP server running...");
 }
 
 main().catch((err) => {
