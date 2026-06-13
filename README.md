@@ -42,3 +42,8 @@ AGENT_PYRAMID_SCHEME_LLM_API_KEY="$OPENROUTER_API_KEY" pnpm inspector node build
   --model "nvidia/nemotron-3-super-120b-a12b:free" \
   --project-dir "/path/to/project/"
 ```
+
+## TODO
+
+- [ ] Abort task feature
+- [ ] WebUI
