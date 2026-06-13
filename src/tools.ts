@@ -91,9 +91,38 @@ function truncate(s: string): string {
   return `${s.slice(0, half)}\n…[truncated ${s.length - MAX_OUTPUT_CHARS} chars]…\n${s.slice(-half)}`;
 }
 
+// Basic defense, could be bypassed
+const BLOCKED_PATTERNS = [
+  /rm\s+-rf\s+\//,
+  /curl[^|]+\|\s*(?:bash|sh)/,
+  /wget[^|]+\|\s*(?:bash|sh)/,
+  /\/etc\//,
+  /~\/\.ssh/,
+  /\$HOME\/\.ssh/,
+];
+
+function isBlockedCommand(command: string): boolean {
+  return BLOCKED_PATTERNS.some((p) => p.test(command));
+}
+
+function safeCwd(
+  requestedCwd: string | undefined,
+  projectDir: string | undefined,
+): string | undefined {
+  if (!projectDir) return requestedCwd;
+
+  const resolved = path.resolve(projectDir, requestedCwd ?? ".");
+  // Reject paths that escape the project root
+  if (!resolved.startsWith(projectDir + path.sep) && resolved !== projectDir) {
+    return projectDir;
+  }
+  return resolved;
+}
+
 export async function runTool(
   name: string,
   args: Record<string, string>,
+  projectDir?: string,
 ): Promise<string> {
   switch (name) {
     case Tools.ReadFile: {
@@ -117,10 +146,13 @@ export async function runTool(
     }
 
     case Tools.ExecuteBash: {
+      if (isBlockedCommand(args.command)) {
+        return "Dangerous operations prohibited";
+      }
       try {
         const { stdout, stderr } = await execAsync(args.command, {
           timeout: BASH_TIMEOUT_MS,
-          cwd: args.cwd,
+          cwd: safeCwd(args.cwd, projectDir),
           shell: "/bin/bash",
         });
         const parts: string[] = [];

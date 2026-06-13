@@ -75,7 +75,12 @@ server.registerTool(
         : undefined;
 
     try {
-      const result = await runAgentLoop(agentConfig, fullTask, onProgress);
+      const result = await runAgentLoop(
+        agentConfig,
+        fullTask,
+        onProgress,
+        resolvedDir,
+      );
       return { content: [{ type: "text", text: result }] };
     } catch (err) {
       return {

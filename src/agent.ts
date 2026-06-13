@@ -30,6 +30,7 @@ export async function runAgentLoop(
   config: AgentConfig,
   taskDesc: string,
   onProgress?: ProgressCallback,
+  projectDir?: string,
 ): Promise<string> {
   const messages: Message[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -40,7 +41,7 @@ export async function runAgentLoop(
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
+    if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
 
     const res = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
@@ -92,7 +93,7 @@ export async function runAgentLoop(
       const label = `[${i + 1}/${MAX_ITERATIONS}] ${tc.function.name}(${JSON.stringify(args).slice(0, 80)})`;
       console.error(`[agent] ${label}`);
       await onProgress?.(i + 1, MAX_ITERATIONS, label);
-      const result = await runTool(tc.function.name, args);
+      const result = await runTool(tc.function.name, args, projectDir);
 
       messages.push({ role: "tool", tool_call_id: tc.id, content: result });
 
