@@ -13,14 +13,16 @@ function parseArgs(argv: string[]): ServerArgs {
   let baseUrl = "http://localhost:11434/v1";
   let model = "gemma4:26b";
   let projectDir: string | undefined;
+  let apiKey: string | undefined = process.env.AGENT_PYRAMID_SCHEME_LLM_API_KEY;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--base-url" && args[i + 1]) baseUrl = args[++i];
     if (args[i] === "--model" && args[i + 1]) model = args[++i];
     if (args[i] === "--project-dir" && args[i + 1]) projectDir = args[++i];
+    if (args[i] === "--api-key" && args[i + 1]) apiKey = args[++i];
   }
 
-  return { baseUrl, model, projectDir };
+  return { baseUrl, model, projectDir, apiKey };
 }
 
 const { projectDir, ...agentConfig } = parseArgs(process.argv);
@@ -33,7 +35,7 @@ server.registerTool(
   "implement_task",
   {
     description:
-      "Delegate a self-contained coding task to the local sub-agent. " +
+      "Delegate a self-contained coding task to the sub-agent. " +
       "The agent can read/write files and execute bash commands. " +
       "Provide a clear, detailed task description including file paths, interfaces, and acceptance criteria.",
     inputSchema: {

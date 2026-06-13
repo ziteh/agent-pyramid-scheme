@@ -6,6 +6,7 @@ const MAX_ITERATIONS = 30;
 export type AgentConfig = {
   baseUrl: string;
   model: string;
+  apiKey?: string;
 };
 
 export type ProgressCallback = (
@@ -35,9 +36,14 @@ export async function runAgentLoop(
   ];
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
+
     const res = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         model: config.model,
         messages,
