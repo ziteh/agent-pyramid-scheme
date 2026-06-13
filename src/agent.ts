@@ -15,15 +15,16 @@ export type ProgressCallback = (
   message: string,
 ) => Promise<void>;
 
-const SYSTEM_PROMPT = `You are an expert software engineer acting as an autonomous coding agent.
-You will receive a specific implementation task. Use the available tools to complete it:
-- read_file: inspect existing files for context
-- write_file: create or update source files
-- execute_bash: compile, run tests, install deps, verify behaviour
-- task_complete: call when the task is fully implemented AND verified
+const SYSTEM_PROMPT = `You are an expert software engineer acting as an autonomous agent.
+You will receive a task — it may involve implementation, investigation, research, code review, or any other well-scoped work.
+Use the available tools to complete it:
+- read_file: inspect files for context or investigation
+- write_file: create or update files when needed
+- execute_bash: run commands, tests, or scripts to gather information or verify behaviour
+- task_complete: call when the task is fully done
 
-Work methodically: understand requirements → plan → implement → verify → complete.
-Always call task_complete with a clear summary when you are done.`;
+Work methodically: understand the task → plan → execute → verify → complete.
+Always call task_complete with a clear summary of your findings or changes when you are done.`;
 
 export async function runAgentLoop(
   config: AgentConfig,

@@ -32,17 +32,18 @@ const server = new McpServer({
 });
 
 server.registerTool(
-  "implement_task",
+  "delegate_task",
   {
     description:
-      "Delegate a self-contained coding task to the sub-agent. " +
+      "Delegate any self-contained task to the sub-agent. " +
       "The agent can read/write files and execute bash commands. " +
-      "Provide a clear, detailed task description including file paths, interfaces, and acceptance criteria.",
+      "Suitable for implementation, investigation, research, code review, or any other well-scoped work. " +
+      "Provide a clear, detailed task description including relevant file paths and acceptance criteria.",
     inputSchema: {
       task_desc: z
         .string()
         .describe(
-          "Detailed description of exactly what to implement, including file paths and expected behaviour",
+          "Detailed description of what the sub-agent should do, including relevant context, file paths, and expected outcome",
         ),
       working_dir: z
         .string()
