@@ -2,7 +2,7 @@
 
 Agents delegating to agents — hand off implementation work to a sub-agent, keeping your main agent's context clean and your token costs down.
 
-A layered agent architecture: the main agent (e.g. Claude Opus, Fable, the powerful and expensive models) handles planning and review, while well-scoped implementation tasks are delegated to a sub-agent (e.g. Qwen3-Coder, DeepSeek-V4, the inexpensive models). This keeps the main agent's context window focused and reduces token costs for repetitive implementation work.
+A layered agent architecture: the main agent (e.g. Claude Opus, Fable, the powerful and expensive models) handles planning and review, while well-scoped implementation tasks are delegated to a sub-agent (e.g. Qwen3-Coder, DeepSeek-V4, the cheap or local models). This keeps the main agent's context window focused and reduces token costs for repetitive implementation work.
 
 ## Usage
 
@@ -51,3 +51,4 @@ Paste the contents of [USAGE.md](USAGE.md) into your `AGENTS.md` or `CLAUDE.md` 
 
 - [x] Abort task feature
 - [ ] WebUI
+- [ ] Assigning tasks based on expertise: Multiple distinct LLMs can be configured—some excel at critical thinking, others at coding, and still others at providing quick responses—and the main agent can select the appropriate one based on the task requirements.
