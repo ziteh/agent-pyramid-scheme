@@ -1,4 +1,4 @@
-# Agent Pyramid Scheme
+# Agent Pyramid Scheme (APS)
 
 Agents delegating to agents — hand off implementation work to a sub-agent, keeping your main agent's context clean and your token costs down.
 
@@ -42,6 +42,10 @@ AGENT_PYRAMID_SCHEME_LLM_API_KEY="$OPENROUTER_API_KEY" pnpm inspector node build
   --model "nvidia/nemotron-3-super-120b-a12b:free" \
   --project-dir "/path/to/project/"
 ```
+
+**Guide:**
+
+Paste the contents of [USAGE.md](USAGE.md) into your `AGENTS.md` or `CLAUDE.md` to let the LLM know how to use APC.
 
 ## TODO
 

@@ -6,6 +6,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { ProgressToken } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod";
 import { type AgentConfig, runAgentLoop } from "./agent.js";
+import { USAGE_GUIDE } from "./resource.js";
 
 type ServerArgs = AgentConfig & { projectDir?: string };
 
@@ -170,6 +171,26 @@ server.registerTool(
       isError: true,
     };
   },
+);
+
+server.registerResource(
+  "usage-guide",
+  "aps://usage-guide",
+  {
+    title: "Agent Pyramid Scheme Usage Guide",
+    description:
+      "How to use APS tools effectively: task descriptions, git worktree setup, async patterns, and what to delegate.",
+    mimeType: "text/markdown",
+  },
+  async () => ({
+    contents: [
+      {
+        uri: "aps://usage-guide",
+        text: USAGE_GUIDE,
+        mimeType: "text/markdown",
+      },
+    ],
+  }),
 );
 
 async function main() {
