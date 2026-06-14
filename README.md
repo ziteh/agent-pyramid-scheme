@@ -49,5 +49,5 @@ Paste the contents of [USAGE.md](USAGE.md) into your `AGENTS.md` or `CLAUDE.md` 
 
 ## TODO
 
-- [ ] Abort task feature
+- [x] Abort task feature
 - [ ] WebUI

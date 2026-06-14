@@ -11,7 +11,7 @@ import { USAGE_GUIDE } from "./resource.js";
 type ServerArgs = AgentConfig & { projectDir?: string };
 
 type TaskStatus =
-  | { status: "running" }
+  | { status: "running"; controller: AbortController }
   | { status: "done"; result: string }
   | { status: "error"; error: string };
 
@@ -80,9 +80,16 @@ server.registerTool(
 
     if (isAsync) {
       const taskId = randomUUID();
-      taskRegistry.set(taskId, { status: "running" });
+      const controller = new AbortController();
+      taskRegistry.set(taskId, { status: "running", controller });
 
-      runAgentLoop(agentConfig, fullTask, undefined, resolvedDir)
+      runAgentLoop(
+        agentConfig,
+        fullTask,
+        undefined,
+        resolvedDir,
+        controller.signal,
+      )
         .then((result) => {
           taskRegistry.set(taskId, { status: "done", result });
         })
@@ -100,11 +107,11 @@ server.registerTool(
     const onProgress =
       progressToken !== undefined
         ? async (progress: number, total: number, message: string) => {
-          await extra.sendNotification({
-            method: "notifications/progress",
-            params: { progressToken, progress, total, message },
-          });
-        }
+            await extra.sendNotification({
+              method: "notifications/progress",
+              params: { progressToken, progress, total, message },
+            });
+          }
         : undefined;
 
     try {
@@ -127,6 +134,62 @@ server.registerTool(
 );
 
 server.registerTool(
+  "list_tasks",
+  {
+    description: "List all currently running async tasks and their IDs.",
+    inputSchema: {},
+  },
+  async () => {
+    const running = [...taskRegistry.entries()]
+      .filter(([, t]) => t.status === "running")
+      .map(([id]) => id);
+    return {
+      content: [{ type: "text", text: JSON.stringify({ running }) }],
+    };
+  },
+);
+
+server.registerTool(
+  "cancel_task",
+  {
+    description: "Cancel a running async task by task ID.",
+    inputSchema: {
+      task_id: z.string().describe("The task ID returned by delegate_task"),
+    },
+  },
+  async ({ task_id }) => {
+    const task = taskRegistry.get(task_id);
+    if (!task) {
+      const known = [...taskRegistry.keys()];
+      const hint = known.length
+        ? `Known IDs: ${known.join(", ")}`
+        : "No tasks are currently registered.";
+      return {
+        content: [
+          { type: "text", text: `Unknown task ID: ${task_id}. ${hint}` },
+        ],
+        isError: true,
+      };
+    }
+
+    if (task.status !== "running") {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Task ${task_id} is not running (status: ${task.status})`,
+          },
+        ],
+        isError: true,
+      };
+    }
+    task.controller.abort();
+    taskRegistry.delete(task_id);
+    return { content: [{ type: "text", text: `Task ${task_id} cancelled.` }] };
+  },
+);
+
+server.registerTool(
   "get_task_result",
   {
     description:
@@ -139,9 +202,14 @@ server.registerTool(
   async ({ task_id }) => {
     const task = taskRegistry.get(task_id);
     if (!task) {
-      // Return task id list for hint?
+      const known = [...taskRegistry.keys()];
+      const hint = known.length
+        ? `Known IDs: ${known.join(", ")}`
+        : "No tasks are currently registered.";
       return {
-        content: [{ type: "text", text: `Unknown task ID: ${task_id}` }],
+        content: [
+          { type: "text", text: `Unknown task ID: ${task_id}. ${hint}` },
+        ],
         isError: true,
       };
     }

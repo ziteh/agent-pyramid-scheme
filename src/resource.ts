@@ -8,6 +8,8 @@ APS lets you delegate self-contained tasks to a sub-agent that has full file rea
 
 - \`delegate_task\` — delegate a task (sync by default; \`async: true\` returns a task ID to poll separately)
 - \`get_task_result\` — poll an async task by task ID; keep polling until status is \`done\` or \`error\`
+- \`list_tasks\` — list all currently running async task IDs
+- \`cancel_task\` — cancel a running async task by task ID; aborts the in-flight LLM request immediately
 
 > **Note:** Sub-agents are slower — a task may take a few minutes. Prefer async mode (\`async: true\`) so you can delegate multiple tasks concurrently and continue other work while they run. Avoid tight polling loops; check back after doing something useful rather than calling \`get_task_result\` in a high-frequency spin-wait.
 
@@ -57,6 +59,10 @@ Parallel async tasks:
   id_A = delegate_task(task_desc="...", async=true)
   id_B = delegate_task(task_desc="...", async=true)
   poll get_task_result(id_A) and get_task_result(id_B) until done
+
+Cancel a task if the direction changes:
+  ids = list_tasks()           # see what's running
+  cancel_task(task_id=id_A)    # abort immediately
 
 Sequential dependent tasks:
   result = delegate_task("Investigate bug in X, summarize root cause")

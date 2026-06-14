@@ -31,6 +31,7 @@ export async function runAgentLoop(
   taskDesc: string,
   onProgress?: ProgressCallback,
   projectDir?: string,
+  signal?: AbortSignal,
 ): Promise<string> {
   const messages: Message[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -46,6 +47,7 @@ export async function runAgentLoop(
     const res = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers,
+      signal,
       body: JSON.stringify({
         model: config.model,
         messages,
