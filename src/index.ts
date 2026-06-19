@@ -6,6 +6,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { ProgressToken } from "@modelcontextprotocol/sdk/types.js";
 import * as z from "zod";
 import { type AgentConfig, runAgentLoop } from "./agent.js";
+import { sddPrompt } from "./prompt.js";
 import { USAGE_GUIDE } from "./resource.js";
 
 type ServerArgs = AgentConfig & { projectDir?: string };
@@ -239,6 +240,28 @@ server.registerTool(
       isError: true,
     };
   },
+);
+
+server.registerPrompt(
+  "sdd",
+  {
+    description:
+      "Specification-Driven Development: guide the main agent to write a spec first, then delegate implementation to sub-agents.",
+    argsSchema: {
+      request: z.string().describe("The user's feature request or task"),
+    },
+  },
+  async ({ request }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: sddPrompt(request),
+        },
+      },
+    ],
+  }),
 );
 
 server.registerResource(
